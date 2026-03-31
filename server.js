@@ -45,6 +45,7 @@ app.use(express.static(__dirname));
 // --- CONEXIÓN MONGODB ---
 const MONGODB_NEWS_URI = process.env.MONGODB_NEWS_URI;
 const MONGODB_MAIN_URI = process.env.MONGODB_MAIN_URI;
+const DEFAULT_MONGO_URI = process.env.MONGODB_URI;
 
 let User, News, Forum, Player, Ranking;
 let mainConn, newsConn;
@@ -54,9 +55,12 @@ const mongoOptions = {
     socketTimeoutMS: 45000,
 };
 
-// Initialize connections independently
-mainConn = MONGODB_MAIN_URI ? mongoose.createConnection(MONGODB_MAIN_URI, mongoOptions) : null;
-newsConn = MONGODB_NEWS_URI ? mongoose.createConnection(MONGODB_NEWS_URI, mongoOptions) : null;
+// Fallback to MONGODB_URI if specific ones are missing, with explicit dbName
+const mainUri = MONGODB_MAIN_URI || DEFAULT_MONGO_URI;
+const newsUri = MONGODB_NEWS_URI || DEFAULT_MONGO_URI;
+
+mainConn = mainUri ? mongoose.createConnection(mainUri, { ...mongoOptions, dbName: 'BGLatam' }) : null;
+newsConn = newsUri ? mongoose.createConnection(newsUri, { ...mongoOptions, dbName: 'test' }) : null;
 
 // Initialize models immediately on their respective connections
 if (mainConn) {
