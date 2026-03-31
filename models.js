@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: true },
     country: { type: String, default: null },
     createdAt: { type: Date, default: Date.now }
-});
+}, { collection: 'users' });
 
 // --- NEWS SCHEMA ---
 const commentSchema = new mongoose.Schema({
@@ -30,7 +30,7 @@ const newsSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now },
     lastEdit: Date,
     comments: { type: [commentSchema], default: [] }
-});
+}, { collection: 'news' });
 
 // --- FORUM SCHEMA ---
 const postSchema = new mongoose.Schema({
@@ -59,14 +59,14 @@ const forumSchema = new mongoose.Schema({
     id: String,
     title: String,
     sections: [sectionSchema]
-});
+}, { collection: 'forums' });
 
 // --- PLAYER SCHEMA ---
 const playerSchema = new mongoose.Schema({
     battleTag: { type: String, required: true, unique: true },
     twitch: { type: String, default: null },
     country: { type: String, default: null }
-});
+}, { collection: 'players' });
 
 // --- RANKING SCHEMA (Seasonal Data) ---
 const rankingSchema = new mongoose.Schema({
@@ -80,7 +80,7 @@ const rankingSchema = new mongoose.Schema({
     twitchUser: String,
     country: { type: String, default: null },
     updatedAt: { type: Date, default: Date.now }
-});
+}, { collection: 'rankings' });
 
 // Index for fast lookups and to ensure no duplicates for a player in a season
 rankingSchema.index({ seasonId: 1, battleTag: 1 }, { unique: true });

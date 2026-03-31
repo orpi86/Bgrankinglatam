@@ -65,7 +65,7 @@ if (MONGODB_MAIN_URI && MONGODB_NEWS_URI) {
     News = newsConn.model('News', newsSchema);
 
     mainConn.on('connected', () => console.log("🚀 Conectado a MongoDB Main (Latam)"));
-    newsConn.on('connected', () => console.log("📰 Conectado a MongoDB News (Spain)"));
+    newsConn.on('connected', () => console.log("📰 Conectado a MongoDB News (Global/Shared)"));
     
     mainConn.on('error', (err) => console.error("❌ Error en conexión Main:", err.message));
     newsConn.on('error', (err) => console.error("❌ Error en conexión News:", err.message));
@@ -371,7 +371,7 @@ app.get('/api/player-summary', async (req, res) => {
         current: null
     };
 
-    if (MONGODB_URI && mongoose.connection.readyState === 1) {
+    if (isMongoAlive(mainConn)) {
         try {
             const rankings = await Ranking.find({ battleTag: player }).sort({ seasonId: 1 }).lean();
             rankings.forEach(r => {
@@ -955,7 +955,7 @@ app.put('/api/news/:id', isEditor, async (req, res) => {
     const newsId = req.params.id;
     const { title, content } = req.body;
 
-    if (MONGODB_URI && mongoose.connection.readyState === 1) {
+    if (isMongoAlive(newsConn)) {
         let news = null;
         try {
             // Primero intentamos por el ID numérico custom (que es lo que el scraper pone en 'id')
@@ -1198,25 +1198,28 @@ app.post('/api/user/change-password', isAuthenticated, async (req, res) => {
 });
 
 app.post('/api/user/update-battletag', isAuthenticated, async (req, res) => {
-    const { battleTag, twitch } = req.body;
-    // BattleTag es opcional si solo actualiza Twitch, pero idealmente pedimos BT siempre que se toque el perfil
-    // Para simplificar, permitimos actualizar si al menos uno está presente
-    if (!battleTag && !twitch) return res.status(400).json({ error: 'Nada que actualizar' });
-
+    const { battleTag, twitch, country } = req.body;
     const userId = req.session.user.id;
 
     if (isMongoAlive(mainConn)) {
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-        if (battleTag) user.battleTag = battleTag;
-        if (twitch !== undefined) user.twitch = twitch; // Permite borrar si se manda null/empty, pero undefined no toca
-        await user.save();
+        try {
+            const user = await User.findById(userId);
+            if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+            
+            if (battleTag) user.battleTag = battleTag;
+            if (twitch !== undefined) user.twitch = twitch;
+            if (country !== undefined) user.country = country;
+            await user.save();
+        } catch (e) {
+            return res.status(500).json({ error: 'Error actualizando en BD' });
+        }
     } else {
         const users = loadJson(USERS_PATH);
         const user = users.find(u => u.id === userId);
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         if (battleTag) user.battleTag = battleTag;
         if (twitch !== undefined) user.twitch = twitch;
+        if (country !== undefined) user.country = country;
         saveJson(USERS_PATH, users);
     }
 
