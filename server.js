@@ -538,7 +538,6 @@ app.get('/api/ranking', async (req, res) => {
     // Retorno por defecto para evitar que el navegador se quede cargando
     res.json([]);
 });
-});
 
 function calcularLogros(players, seasonId) {
     const isCurrent = (parseInt(seasonId) === CURRENT_SEASON_ID);
