@@ -43,6 +43,12 @@ app.use('/api/', apiLimiter);
 app.use(express.static(__dirname));
 
 // --- CONEXIÓN MONGODB ---
+const MONGODB_NEWS_URI = process.env.MONGODB_NEWS_URI;
+const MONGODB_MAIN_URI = process.env.MONGODB_MAIN_URI;
+
+let User, News, Forum, Player, Ranking;
+let mainConn, newsConn;
+
 const mongoOptions = {
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
@@ -64,6 +70,7 @@ if (mainConn) {
 }
 
 if (newsConn) {
+    const { newsSchema, forumSchema } = require('./models');
     News = newsConn.model('News', newsSchema);
     Forum = newsConn.model('Forum', forumSchema);
     newsConn.on('connected', () => console.log("📰 Conectado a MongoDB News (Global/Shared)"));
