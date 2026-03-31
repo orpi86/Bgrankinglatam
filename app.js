@@ -154,8 +154,14 @@ let selectedToCompare = [];
 
 function renderTable(data) {
     const tbody = document.getElementById('leaderboard-body');
+    const loading = document.getElementById('loading');
     if (!tbody) return;
     tbody.innerHTML = '';
+
+    if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--hs-silver);">No hay datos disponibles aún. El tabernero está buscando jugadores en Blizzard...</td></tr>`;
+        return;
+    }
 
     data.forEach(player => {
         const tr = document.createElement('tr');
