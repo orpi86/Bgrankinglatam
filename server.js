@@ -270,13 +270,23 @@ async function ensurePlayerInRanking(battleTag, twitch = null, country = null) {
         }
         const index = players.findIndex(p => p.battleTag.toLowerCase() === battleTag.toLowerCase());
         if (index === -1) {
-            players.push({ battleTag, twitch });
+            players.push({ battleTag, twitch, country });
             fs.writeFileSync(PLAYERS_PATH, JSON.stringify(players, null, 2));
-            console.log(`✅ Jugador auto-añadido al ranking JSON: ${battleTag}`);
-        } else if (twitch && players[index].twitch !== twitch) {
-            players[index].twitch = twitch;
-            fs.writeFileSync(PLAYERS_PATH, JSON.stringify(players, null, 2));
-            console.log(`🔄 Twitch actualizado JSON para ${battleTag}`);
+            console.log(`✅ Jugador auto-añadido al ranking JSON: ${battleTag} (${country})`);
+        } else {
+            let changed = false;
+            if (twitch && players[index].twitch !== twitch) {
+                players[index].twitch = twitch;
+                changed = true;
+            }
+            if (country && players[index].country !== country) {
+                players[index].country = country;
+                changed = true;
+            }
+            if (changed) {
+                fs.writeFileSync(PLAYERS_PATH, JSON.stringify(players, null, 2));
+                console.log(`🔄 Perfil actualizado JSON para ${battleTag}`);
+            }
         }
     } catch (e) {
         console.error("Error en ensurePlayerInRanking (JSON):", e.message);
@@ -1233,10 +1243,12 @@ app.post('/api/user/update-battletag', isAuthenticated, async (req, res) => {
     const finalTwitch = twitch !== undefined ? twitch : req.session.user.twitch;
 
     if (finalBT) {
-        ensurePlayerInRanking(finalBT, finalTwitch);
+        // Obtenemos el pais actualizado (ya guardado arriba)
+        const finalCountry = country !== undefined ? country : (req.session.user.country || null);
+        ensurePlayerInRanking(finalBT, finalTwitch, finalCountry);
     }
 
-    res.json({ success: true, message: 'Perfil actualizado correctamente', battleTag: finalBT, twitch: finalTwitch });
+    res.json({ success: true, message: 'Perfil actualizado correctamente', battleTag: finalBT, twitch: finalTwitch, country: country });
 });
 
 

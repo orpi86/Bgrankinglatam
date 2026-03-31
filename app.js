@@ -189,12 +189,27 @@ function renderTable(data) {
             });
         }
 
-        const query = document.getElementById('player-search').value.toLowerCase();
-        const isSelected = query && player.battleTag.toLowerCase().includes(query);
-        if (isSelected) tr.style.background = 'rgba(252, 209, 68, 0.2)';
-
-        const countryFlagHtml = player.country ? `<span class="flag-icon flag-icon-${player.country.toLowerCase()}" style="margin-right:8px; border-radius:2px;"></span>` : '';
-        tr.innerHTML = `<td class="col-rank-es">#${player.spainRank}</td><td class="col-rank-eu">${player.found ? '#' + player.rank : '-'}</td><td class="col-player"><div class="player-row-content">${avatarHtml}<div class="player-info"><div class="name-container">${countryFlagHtml}<span class="player-name" style="${isSelected ? 'color: var(--hs-gold);' : ''}">${name}</span></div><span class="player-tag">#${tag}</span><div class="badges-wrapper">${badgesHtml}</div></div></div></td><td class="col-mmr">${ratingFormatted}</td>`;
+        const countryFlagHtml = player.country ? `<span class="flag-icon flag-icon-${player.country.toLowerCase()}" style="margin-right:8px; border-radius:2px; min-width: 20px; height: 15px; display: inline-block;"></span>` : '';
+        tr.innerHTML = `
+            <td class="col-rank-latam">#${player.spainRank}</td>
+            <td class="col-rank-us">${player.found ? '#' + player.rank : '-'}</td>
+            <td class="col-player">
+                <div class="player-row-content">
+                    ${avatarHtml}
+                    <div class="player-info">
+                        <div class="name-container">
+                            <div class="name-main">
+                                ${countryFlagHtml}
+                                <span class="player-name" style="${isSelected ? 'color: var(--hs-gold);' : ''}">${name}</span>
+                                <span class="player-tag">#${tag}</span>
+                            </div>
+                            <div class="badges-wrapper">${badgesHtml}</div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td class="col-mmr">${ratingFormatted}</td>
+        `;
         tbody.appendChild(tr);
     });
 }

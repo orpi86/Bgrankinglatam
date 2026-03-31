@@ -657,13 +657,13 @@ th {
 }
 
 /* Sincronización Estricta (PX para evitar variaciones) */
-.col-rank-es {
+.col-rank-latam {
     width: 60px !important;
     min-width: 60px !important;
     text-align: center !important;
 }
 
-.col-rank-eu {
+.col-rank-us {
     width: 70px !important;
     min-width: 70px !important;
     text-align: center !important;
@@ -724,7 +724,21 @@ tr:hover td {
 .name-container {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.name-main {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.badges-wrapper {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .player-name {
@@ -1647,8 +1661,12 @@ tr:nth-child(n+9) {
         padding: 10px;
     }
 
-    .col-rank-es {
+    .col-rank-latam {
         font-size: 1.1rem;
+    }
+
+    .col-rank-us {
+        font-size: 1rem;
     }
 
     .player-avatar {
