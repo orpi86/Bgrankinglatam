@@ -43,37 +43,36 @@ app.use('/api/', apiLimiter);
 app.use(express.static(__dirname));
 
 // --- CONEXIÓN MONGODB ---
-const MONGODB_NEWS_URI = process.env.MONGODB_NEWS_URI;
-const MONGODB_MAIN_URI = process.env.MONGODB_MAIN_URI;
-
-let User, News, Forum, Player, Ranking;
-let mainConn, newsConn;
-
 const mongoOptions = {
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
 };
 
-if (MONGODB_MAIN_URI && MONGODB_NEWS_URI) {
-    mainConn = mongoose.createConnection(MONGODB_MAIN_URI, mongoOptions);
-    newsConn = mongoose.createConnection(MONGODB_NEWS_URI, mongoOptions);
+// Initialize connections independently
+mainConn = MONGODB_MAIN_URI ? mongoose.createConnection(MONGODB_MAIN_URI, mongoOptions) : null;
+newsConn = MONGODB_NEWS_URI ? mongoose.createConnection(MONGODB_NEWS_URI, mongoOptions) : null;
 
+// Initialize models immediately on their respective connections
+if (mainConn) {
     User = mainConn.model('User', userSchema);
-    Forum = newsConn.model('Forum', forumSchema);
     Player = mainConn.model('Player', playerSchema);
     Ranking = mainConn.model('Ranking', rankingSchema);
-    News = newsConn.model('News', newsSchema);
-
-    mainConn.on('connected', () => console.log("🚀 Conectado a MongoDB Main (Latam)"));
-    newsConn.on('connected', () => console.log("📰 Conectado a MongoDB News (Global/Shared)"));
-    
+    mainConn.on('connected', () => console.log("🚀 Conectado a MongoDB Main (BGLatam)"));
     mainConn.on('error', (err) => console.error("❌ Error en conexión Main:", err.message));
-    newsConn.on('error', (err) => console.error("❌ Error en conexión News:", err.message));
 } else {
-    console.warn("⚠️ MONGODB_NEWS_URI o MONGODB_MAIN_URI no detectadas. Usando JSON (Modo temporal)");
+    console.warn("⚠️ MONGODB_MAIN_URI no detectada. Usando JSON para usuarios/ranking.");
 }
 
-const isMongoAlive = (conn) => conn && conn.readyState === 1;
+if (newsConn) {
+    News = newsConn.model('News', newsSchema);
+    Forum = newsConn.model('Forum', forumSchema);
+    newsConn.on('connected', () => console.log("📰 Conectado a MongoDB News (Global/Shared)"));
+    newsConn.on('error', (err) => console.error("❌ Error en conexión News:", err.message));
+} else {
+    console.warn("⚠️ MONGODB_NEWS_URI no detectada. Usando JSON para noticias/foro.");
+}
+
+const isMongoAlive = (conn) => conn && (conn.readyState === 1 || conn.readyState === 2); // 1 = connected, 2 = connecting
 
 // Global Error Handling to prevent crashes from bringing down the service without logs
 process.on('unhandledRejection', (reason, promise) => {
@@ -881,6 +880,7 @@ app.post('/api/register', async (req, res) => {
 
     let newUser;
     if (isMongoAlive(mainConn)) {
+        console.log(`📝 Intentando registro en MongoDB para: ${username}`);
         newUser = await User.create({
             username,
             email: email.toLowerCase(),
@@ -890,7 +890,9 @@ app.post('/api/register', async (req, res) => {
             country: country || null,
             isVerified: true
         });
+        console.log(`✅ Usuario guardado en MongoDB: ${newUser.username}`);
     } else {
+        console.warn(`📂 MongoDB Main no disponible. Guardando en JSON local: ${username}`);
         const users = loadJson(USERS_PATH);
         newUser = {
             id: Date.now(),
