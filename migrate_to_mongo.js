@@ -1,0 +1,169 @@
+const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
+const { User, News, Forum, Player, Ranking } = require('./models');
+require('dotenv').config();
+
+const DATA_DIR = path.join(__dirname, 'data');
+const USERS_PATH = path.join(DATA_DIR, 'users.json');
+const NEWS_PATH = path.join(DATA_DIR, 'news.json');
+const FORUM_PATH = path.join(DATA_DIR, 'forum.json');
+const PLAYERS_PATH = path.join(__dirname, 'jugadores.json');
+const HISTORICAL_PATH = path.join(__dirname, 'historical_data.json');
+const CACHE_PATH = path.join(__dirname, 'cache.json');
+
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+    console.error("❌ MONGODB_URI no definida en .env");
+    process.exit(1);
+}
+
+async function migrate() {
+    try {
+        await mongoose.connect(MONGODB_URI);
+        console.log("✅ Conectado a MongoDB");
+
+        // --- MIGRAR RANKINGS (Desde Historical y Cache) ---
+        console.log("📊 Iniciando migración de Rankings...");
+
+        // 1. Historical Data
+        if (fs.existsSync(HISTORICAL_PATH)) {
+            const historical = JSON.parse(fs.readFileSync(HISTORICAL_PATH, 'utf8'));
+            if (historical.seasons) {
+                for (const seasonId in historical.seasons) {
+                    console.log(`📦 Migrando Season ${seasonId} (Historical)...`);
+                    const players = historical.seasons[seasonId];
+                    for (const p of players) {
+                        try {
+                            await Ranking.findOneAndUpdate(
+                                { seasonId: parseInt(seasonId), battleTag: p.battleTag },
+                                {
+                                    rank: p.rank,
+                                    rating: p.rating,
+                                    found: p.found,
+                                    spainRank: p.spainRank,
+                                    isLive: p.isLive || false,
+                                    twitchUser: p.twitchUser || null,
+                                    updatedAt: new Date()
+                                },
+                                { upsert: true }
+                            );
+                        } catch (err) {
+                            console.error(`Error migrando ${p.battleTag} en season ${seasonId}:`, err.message);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Cache Data (Current/Recent seasons)
+        if (fs.existsSync(CACHE_PATH)) {
+            const cache = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
+            for (const seasonId in cache) {
+                console.log(`📦 Migrando Season ${seasonId} (Cache)...`);
+                const players = cache[seasonId].data;
+                for (const p of players) {
+                    try {
+                        await Ranking.findOneAndUpdate(
+                            { seasonId: parseInt(seasonId), battleTag: p.battleTag },
+                            {
+                                rank: p.rank,
+                                rating: p.rating,
+                                found: p.found,
+                                spainRank: p.spainRank,
+                                isLive: p.isLive || false,
+                                twitchUser: p.twitchUser || null,
+                                updatedAt: new Date(cache[seasonId].timestamp || Date.now())
+                            },
+                            { upsert: true }
+                        );
+                    } catch (err) {
+                        console.error(`Error migrando cache ${p.battleTag} en season ${seasonId}:`, err.message);
+                    }
+                }
+            }
+        }
+        console.log("✅ Rankings migrados correctamente.");
+
+        // CLEAN UP OPTION (To fix schema issues)
+        // Uncomment to wipe DB and request cleanly:
+        // await User.deleteMany({}); await News.deleteMany({}); await Forum.deleteMany({}); await Player.deleteMany({});
+        // console.log("🧹 Base de datos limpiada para re-migración.");
+
+        // NOTE: The lines below caused data deletion previously. They are commented out now to prevent data loss.
+        // If you want to reset Forum and News, uncomment them carefully.
+        // await Forum.deleteMany({});
+        // await News.deleteMany({});
+        // console.log("🧹 Colecciones Forum y News limpiadas para corregir IDs.");
+
+
+        // --- MIGRAR USUARIOS ---
+        if (fs.existsSync(USERS_PATH)) {
+            const users = JSON.parse(fs.readFileSync(USERS_PATH, 'utf8'));
+            for (const u of users) {
+                // Evitar duplicados
+                const exists = await User.findOne({ username: u.username });
+                if (!exists) {
+                    await User.create({
+                        username: u.username,
+                        password: u.password || '$2b$10$C8.2pNC0lzU.CAn2A9K/A.m0VzLz.v2XyGf7p1K5y7y7y7y7y7y7y', // Default: 'cambiame123'
+                        email: u.email || `${u.username.toLowerCase()}@example.com`,
+                        role: u.role,
+                        battleTag: u.battleTag || u.battletag,
+                        banned: u.banned,
+                        isVerified: u.isVerified,
+                        createdAt: u.createdAt || new Date()
+                    });
+                    console.log(`👤 Usuario migrado: ${u.username}`);
+                }
+            }
+        }
+
+        // --- MIGRAR NOTICIAS ---
+        if (fs.existsSync(NEWS_PATH)) {
+            const news = JSON.parse(fs.readFileSync(NEWS_PATH, 'utf8'));
+            for (const n of news) {
+                const exists = await News.findOne({ title: n.title, date: n.date });
+                if (!exists) {
+                    await News.create(n);
+                    console.log(`📰 Noticia migrada: ${n.title}`);
+                }
+            }
+        }
+
+        // --- MIGRAR JUGADORES ---
+        if (fs.existsSync(PLAYERS_PATH)) {
+            const players = JSON.parse(fs.readFileSync(PLAYERS_PATH, 'utf8'));
+            for (const p of players) {
+                const exists = await Player.findOne({ battleTag: p.battleTag });
+                if (!exists) {
+                    await Player.create(p);
+                    console.log(`🎮 Jugador migrado: ${p.battleTag}`);
+                }
+            }
+        }
+
+        // --- MIGRAR FORO ---
+        if (fs.existsSync(FORUM_PATH)) {
+            const forumData = JSON.parse(fs.readFileSync(FORUM_PATH, 'utf8'));
+            for (const cat of forumData) {
+                const exists = await Forum.findOne({ id: cat.id });
+                if (!exists) {
+                    await Forum.create(cat);
+                    console.log(`🗣️ Categoría de foro migrada: ${cat.title}`);
+                } else {
+                    console.log(`⚠️ Categoría ya existe: ${cat.title}`);
+                }
+            }
+        }
+
+        console.log("🏁 Migración completada correctamente.");
+        process.exit(0);
+    } catch (error) {
+        console.error("❌ Error en la migración:", error);
+        process.exit(1);
+    }
+}
+
+migrate();
