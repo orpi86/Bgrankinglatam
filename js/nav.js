@@ -36,6 +36,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         <a href="/forum" class="nav-link"><i class="fa-solid fa-comments"></i> Foro</a>
         <a href="/ranking" class="nav-link"><i class="fa-solid fa-trophy"></i> Ranking</a>
         <a href="https://hsreplay.net/battlegrounds/comps/" target="_blank" class="nav-link"><i class="fa-solid fa-chess-board"></i> Compos</a>
+        <!-- Region Switcher: ESPAÑA (Link to Latam from there later) -->
+        <a href="https://bg-espana.onrender.com/" class="nav-link region-link"><i class="fa-solid fa-earth-europe"></i> España</a>
         ${authLinks}
     `;
 
