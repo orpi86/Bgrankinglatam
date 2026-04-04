@@ -693,6 +693,7 @@ async function actualizarTwitchLive(playersList) {
 app.get('/ranking', (req, res) => { res.sendFile(path.join(__dirname, 'ranking.html')); });
 app.get('/news', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); }); // index is News now
 app.get('/forum', (req, res) => { res.sendFile(path.join(__dirname, 'forum.html')); });
+app.get('/register', (req, res) => { res.sendFile(path.join(__dirname, 'register.html')); });
 app.get('/login', (req, res) => { res.sendFile(path.join(__dirname, 'login.html')); });
 app.get('/admin', (req, res) => { res.redirect('/login'); });
 
