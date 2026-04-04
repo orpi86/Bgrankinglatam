@@ -83,7 +83,7 @@ if (newsConn) {
     console.warn("⚠️ MONGODB_NEWS_URI no detectada. Usando JSON para noticias/foro.");
 }
 
-const isMongoAlive = (conn) => conn && (conn.readyState === 1 || conn.readyState === 2); // 1 = connected, 2 = connecting
+const isMongoAlive = (conn) => conn && conn.readyState === 1; // 1 = connected
 
 // Global Error Handling to prevent crashes from bringing down the service without logs
 process.on('unhandledRejection', (reason, promise) => {
@@ -1611,7 +1611,7 @@ app.post('/api/admin/change-role', isAdmin, async (req, res) => {
     const validRoles = ['user', 'mod', 'editor', 'admin'];
     if (!validRoles.includes(role)) return res.status(400).json({ error: 'Rol inválido' });
 
-    if (MONGODB_URI) {
+    if (isMongoAlive(mainConn)) {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         if (user.username === 'admin') return res.status(403).json({ error: 'No puedes cambiar el rol al admin principal' });
@@ -1639,7 +1639,7 @@ app.post('/api/admin/reset-password', isAdmin, async (req, res) => {
     const bcrypt = require('bcrypt');
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    if (MONGODB_URI) {
+    if (isMongoAlive(mainConn)) {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         user.password = hashedPassword;
@@ -1662,7 +1662,7 @@ app.delete('/api/admin/player', isAdmin, async (req, res) => {
     const { battleTag } = req.body;
     if (!battleTag) return res.status(400).json({ error: 'BattleTag requerido' });
 
-    if (MONGODB_URI && mongoose.connection.readyState === 1) {
+    if (isMongoAlive(mainConn)) {
         try {
             const result = await Player.findOneAndDelete({ battleTag: { $regex: new RegExp(`^${battleTag}$`, 'i') } });
             if (!result) return res.status(404).json({ error: 'Jugador no encontrado' });

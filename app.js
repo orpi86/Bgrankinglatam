@@ -206,7 +206,7 @@ function renderTable(data) {
                         <div class="name-container">
                             <div class="name-main">
                                 ${countryFlagHtml}
-                                <span class="player-name" style="${isSelected ? 'color: var(--hs-gold);' : ''}">${name}</span>
+                                <span class="player-name">${name}</span>
                                 <span class="player-tag">#${tag}</span>
                             </div>
                             <div class="badges-wrapper">${badgesHtml}</div>
