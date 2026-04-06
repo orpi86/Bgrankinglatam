@@ -278,6 +278,21 @@ async function ensurePlayerInRanking(battleTag, twitch = null, country = null) {
                     updatedAt: new Date()
                 });
                 console.log(`✅ Entrada de ranking inicial creada para: ${player.battleTag}`);
+            } else {
+                // Sincronizar país y twitch si ya existe pero han cambiado
+                let rankingChanged = false;
+                if (player.country && rankingEntry.country !== player.country) {
+                    rankingEntry.country = player.country;
+                    rankingChanged = true;
+                }
+                if (player.twitch && rankingEntry.twitchUser !== player.twitch) {
+                    rankingEntry.twitchUser = player.twitch;
+                    rankingChanged = true;
+                }
+                if (rankingChanged) {
+                    await rankingEntry.save();
+                    console.log(`🔄 Sincronizado país/twitch en ranking actual para: ${player.battleTag}`);
+                }
             }
         } catch (e) {
             console.error("❌ Error en ensurePlayerInRanking (Mongo):", e.message);
